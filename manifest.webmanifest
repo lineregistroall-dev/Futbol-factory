@@ -1,0 +1,19 @@
+{
+  "name": "TacticalPad Web - Pizarra táctica",
+  "short_name": "TacticalPad",
+  "description": "Pizarra táctica de fútbol con animaciones por fotogramas clave.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#101820",
+  "theme_color": "#101820",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
