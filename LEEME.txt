@@ -1,0 +1,14 @@
+TACTICALPAD WEB — INSTALACIÓN Y USO SIN CONEXIÓN
+
+1. Descomprime TacticalPad_Offline.zip.
+2. Para instalarla como aplicación y habilitar el modo offline, publica la carpeta en un hosting HTTPS o sírvela desde localhost. Abrir index.html directamente como file:// normalmente no permite usar Service Worker.
+3. Abre la app con internet y recarga una vez. El Service Worker guardará la app y la biblioteca 3D externa en caché.
+4. En Android/Chrome, abre la dirección HTTPS y entra en ⋮ > Instalar aplicación o Añadir a pantalla de inicio.
+5. Después de que se haya cargado y almacenado en caché, podrás volver a abrirla sin conexión.
+
+CONTROLES DE TEXTO
+- Puedes escoger Pequeño, Mediano, Grande y una animación antes de crear texto; se aplicarán al próximo texto.
+- Si seleccionas un texto existente, los cambios se aplican inmediatamente a ese texto.
+
+NOTA
+La vista 3D utiliza Three.js desde un CDN. Para usarla offline, abre la app online al menos una vez y recarga después de que el Service Worker esté activo para que el navegador almacene esa biblioteca. La vista 2D no depende de esa biblioteca.

@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101820"><meta name="description" content="Pizarra táctica de fútbol 2D y campo 3D interactivo con jugadores volumétricos y animaciones por fotogramas clave."><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon.svg">
+<title>TacticalPad Web — Offline</title>
+<style>
+:root{--bg:#101820;--panel:#18232d;--line:#2c3b47;--text:#edf4f7;--muted:#9eb0bb;--accent:#18c6b4;--blue:#38a9ff;--orange:#ff9d42}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:#131e27;position:sticky;top:0;z-index:3}
+.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#17bfae,#1682a0);display:grid;place-items:center;font-weight:900;font-size:20px}
+h1{font-size:17px;margin:0} .sub{color:var(--muted);font-size:12px}.grow{flex:1}
+button,select,input{font:inherit;color:var(--text);background:#22313d;border:1px solid #3b4d5a;border-radius:8px;padding:8px 10px}
+button{cursor:pointer}button:hover{filter:brightness(1.15)}button.primary{background:var(--accent);color:#052522;border-color:transparent;font-weight:700}button.active{outline:2px solid var(--accent);background:#174a4b}
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr) 250px;gap:12px;padding:12px;max-width:1600px;margin:auto}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.09em;color:#afc2cc;margin:0 0 12px}
+.toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.tool{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}.tool span:first-child{font-size:20px}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}.fieldwrap{background:#0b1218;border:1px solid #2a3c46;border-radius:12px;padding:10px;min-width:0}
+.fieldtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.fieldtop label{color:var(--muted);font-size:12px}.formation-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid #3c766c;border-radius:9px;background:linear-gradient(135deg,#183e39,#203b4a);color:#e8fff9;font-weight:800;letter-spacing:.03em;white-space:nowrap}.formation-badge small{font-size:10px;font-weight:600;color:#9fd9cb;letter-spacing:.08em}
+#pitch{width:100%;height:auto;display:block;touch-action:none;border-radius:8px;cursor:crosshair;background:#187447;transform-origin:center center;transition:transform .35s ease,filter .35s ease,box-shadow .35s ease}
+#threeView{display:none;width:100%;height:clamp(360px,62vw,650px);min-height:360px;border-radius:8px;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#27404a,#080d11 75%);position:relative;touch-action:none}
+#threeView canvas{width:100%;height:100%;display:block;touch-action:none}
+.fieldwrap.view3d #pitch{display:none}.fieldwrap.view3d #threeView{display:block}.camera-controls{display:none;align-items:center;gap:5px;flex-wrap:wrap}.fieldwrap.view3d .camera-controls{display:flex}.camera-controls label{font-size:12px;color:var(--muted)}.camera-controls select{max-width:140px;padding:7px 8px}#threeView, #threeView canvas{touch-action:none} @media(max-width:650px){.camera-controls select{max-width:115px}.camera-controls label{display:none}}
+.three-hint{position:absolute;left:12px;bottom:10px;padding:6px 9px;border-radius:7px;background:#071015c9;color:#e9f4f7;font-size:11px;pointer-events:none;border:1px solid #42565f}
+.fieldwrap.view3d{background:linear-gradient(180deg,#15242c,#080d11);padding:18px 18px 28px;border-bottom:9px solid #65482f;box-shadow:0 18px 28px rgba(0,0,0,.42),inset 0 1px 0 #52656d}
+.fieldwrap.view3d #pitch{transform:rotateX(30deg) scaleY(.91);filter:drop-shadow(0 16px 8px rgba(0,0,0,.42));box-shadow:0 7px 0 #23603d}
+.fieldwrap.view3d .fieldtop{margin-bottom:16px}
+#toggle3d.active{background:#18c6b4;color:#052522;outline:2px solid #6af4e4}
+@media(max-width:650px){.fieldwrap.view3d{padding:10px 8px 18px}.fieldwrap.view3d #pitch{transform:rotateX(24deg) scaleY(.94)}}
+.status{font-size:12px;color:var(--muted);padding:8px 2px;min-height:30px}
+.text-controls-panel{display:block!important;margin:10px 0;padding:10px;border:1px solid #3b5965;border-radius:10px;background:#12252d}.text-controls-panel .text-controls-hint{margin-bottom:8px}.text-controls-panel.text-active{border-color:var(--accent);box-shadow:0 0 0 1px #18c6b433}.text-controls-panel select{min-width:0}.text-controls-panel .row{align-items:center}.text-controls-panel .row label{width:92px;flex-shrink:0}.text-controls-panel .row select{flex:1;min-width:0}.text-controls-panel .wide{margin-top:8px}.text-choice-row{display:flex;gap:5px;margin:7px 0}.text-choice-row button{flex:1;padding:8px 4px;font-size:12px}.text-controls-panel [hidden]{display:none!important}.small{font-size:12px;color:var(--muted);line-height:1.45}.row{display:flex;gap:7px;align-items:center;margin:8px 0}.row>*{min-width:0}.row label{width:80px;color:var(--muted);font-size:12px}.row input,.row select{flex:1;width:0}
+.stack{display:grid;gap:7px}.wide{width:100%}.listitem{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:#202f3a;margin:5px 0}.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+#timeline{width:100%;accent-color:var(--accent)}.bottom-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.framesbar{display:flex;gap:7px;overflow-x:auto;padding:8px 2px}.framechip{min-width:72px;display:grid;gap:4px;justify-items:center;padding:8px 10px}.framechip.current{outline:2px solid var(--accent);background:#174a4b}.timeline-panel{margin-top:10px;background:#14212a;border:1px solid var(--line);border-radius:10px;padding:10px}.timeline-head{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.timeline-head strong{margin-right:auto}.frame-track{position:relative;min-height:54px;background:linear-gradient(180deg,#172731,#111b22);border-radius:8px;margin-top:9px;padding:8px}.frame-markers{display:flex;gap:8px;overflow-x:auto}.frame-marker{min-width:58px;min-height:36px;border:1px solid #59717d;background:#263b46;border-radius:7px;padding:5px;text-align:center}.frame-marker.current{background:#16776d;border-color:#51e4d2}.time-readout{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}.project-library{margin-top:10px;background:#14212a;border:1px solid var(--line);border-radius:10px;padding:10px}.project-list{display:grid;gap:6px;margin-top:8px}.project-card{display:flex;align-items:center;gap:6px;padding:7px;background:#202f3a;border-radius:8px}.project-card .pname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.project-card button{padding:6px 8px}.install-hint{font-size:12px;color:var(--muted);line-height:1.45;margin-top:8px}
+@media(max-width:1050px){.layout{grid-template-columns:190px minmax(0,1fr)}.right{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:12px}.right .panel{min-width:0}}
+@media(max-width:650px){header{padding:10px}.layout{display:flex;flex-direction:column;padding:8px}.left{order:2}.center{order:1}.right{order:3;display:flex;flex-direction:column}.panel{padding:10px}.toolgrid{grid-template-columns:repeat(4,1fr)}.tool{min-height:54px;padding:5px 2px;font-size:11px}.hide-mobile{display:none}}
+</style>
+</head>
+<body>
+<header><div class="logo">↗</div><div><h1>TacticalPad Web</h1><div class="sub">Pizarra táctica 2D/3D · lista para uso sin conexión</div></div><div class="grow"></div><button id="newBtn">＋ Nuevo</button><button id="saveBtn" class="primary">Guardar</button></header>
+<main class="layout">
+<aside class="panel left">
+<h2>Herramientas</h2>
+<div class="toolgrid">
+<button class="tool active" data-tool="select"><span>↖</span>Seleccionar</button>
+<button class="tool" data-tool="player"><span>●</span>Jugador</button>
+<button class="tool" data-tool="ball"><span>⚽</span>Balón</button>
+<button class="tool" data-tool="arrow"><span>➜</span>Flecha</button>
+<button class="tool" data-tool="run"><span>⇢</span>Movimiento</button>
+<button class="tool" data-tool="line"><span>／</span>Línea</button>
+<button class="tool" data-tool="zigzag"><span>〽</span>Zigzag</button>
+<button class="tool" data-tool="cone"><span>▲</span>Cono</button>
+<button class="tool" data-tool="text"><span>T</span>Texto</button>
+<button class="tool" id="deleteTool" title="Eliminar la herramienta seleccionada"><span>🗑️</span>Eliminar herramienta</button>
+</div>
+<hr><h2>Herramientas de texto</h2>
+<div id="textControls" class="text-controls-panel">
+<button type="button" id="toggleTextSize" class="wide">Tamaño de texto ▾</button>
+<div id="textSizeChoices" class="text-choice-row" hidden>
+<button type="button" data-text-size="small">Pequeño</button>
+<button type="button" data-text-size="medium">Mediano</button>
+<button type="button" data-text-size="large">Grande</button>
+</div>
+<button type="button" id="toggleTextAnimation" class="wide">Animación ▾</button>
+<div id="textAnimationChoices" hidden>
+<select id="textAnimation" aria-label="Opciones de animación" class="wide">
+<option value="none">Sin animación</option>
+<option value="pulse">Pulso</option>
+<option value="bounce">Rebote</option>
+<option value="fade">Aparecer / desaparecer</option>
+<option value="slide">Deslizar</option>
+<option value="shake">Vibración</option>
+<option value="typewriter">Máquina de escribir</option>
+</select>
+</div>
+<select id="textSizePreset" hidden aria-hidden="true"><option value="small">Pequeño</option><option value="medium" selected>Mediano</option><option value="large">Grande</option></select>
+</div>
+<div class="row"><label for="ballSize">Tamaño del balón</label><select id="ballSize" aria-label="Tamaño del balón"><option value="12">Normal (actual)</option><option value="16">Grande</option><option value="20">Extra grande</option></select></div>
+<hr><h2>Equipo</h2>
+<div class="row"><label>Color A</label><input type="color" id="colorA" value="#258cf4"></div>
+<div class="row"><label>Color B</label><input type="color" id="colorB" value="#f49b35"></div>
+<div class="row"><label>Jugadores</label><select id="team"><option value="A">Equipo A</option><option value="B">Equipo B</option></select></div>
+<div class="row"><label>Sistema táctico</label><select id="formation"><option value="4-3-3">4-3-3</option><option value="4-2-3-1">4-2-3-1</option><option value="4-4-2">4-4-2</option><option value="4-2-2-2">4-2-2-2</option><option value="4-1-4-1">4-1-4-1</option><option value="4-3-1-2">4-3-1-2</option><option value="3-5-2">3-5-2</option><option value="3-4-3">3-4-3</option><option value="5-3-2">5-3-2</option><option value="5-4-1">5-4-1</option><option value="3-4-2-1">3-4-2-1</option><option value="4-5-1">4-5-1</option></select></div>
+<div class="row"><label>Extensión</label><select id="formationExtent"><option value="half">Media cancha (por defecto)</option><option value="full">Campo completo</option></select></div>
+<div class="bottom-actions"><button id="applyFormation" class="wide">Aplicar sistema al equipo</button><button id="addOneTeam" class="wide">＋ Agregar un equipo de 11</button><button id="addBothTeams" class="wide primary">＋ Agregar dos equipos de 11</button><button id="deleteTeam" class="wide">⌫ Eliminar equipo seleccionado</button><button id="addTeam" class="wide">＋ Añadir jugador</button><button id="clearDraw" class="wide">Borrar dibujos</button></div>
+<hr><h2>Acciones</h2>
+<div class="stack"><button id="undo" class="wide">↶ Deshacer</button><button id="delete" class="wide">⌫ Eliminar seleccionado</button><button id="flip" class="wide">⇄ Cambiar orientación</button></div>
+<p class="small">La pizarra comienza vacía. Elige Jugador para colocarlos manualmente, o selecciona un sistema y agrega uno o dos equipos; cada equipo ocupa su mitad del campo. Usa “Eliminar equipo seleccionado” para quitar el equipo elegido.</p>
+</aside>
+<section class="center">
+<div class="fieldwrap">
+<div class="fieldtop"><div id="formationDisplay" class="formation-badge" title="Sistema de juego seleccionado"><small>SISTEMA</small><span id="formationDisplayValue">4-3-3</span></div><label>Vista</label><select id="view"><option value="full">Campo completo</option><option value="half">Medio campo</option><option value="vertical">Campo vertical</option></select><label>Formato</label><select id="format"><option value="11">11 vs 11</option><option value="7">7 vs 7</option><option value="5">5 vs 5</option></select><div class="grow"></div><button id="toggle3d" aria-pressed="false" title="Cambiar entre vista plana y vista 3D">▱ 3D</button><span id="cameraControls" class="camera-controls"><label for="cameraAngle">Cámara</label><select id="cameraAngle" aria-label="Ángulo de cámara"><option value="broadcast">Transmisión</option><option value="top">Desde arriba</option><option value="sideline">Lateral</option><option value="goalA">Desde arco A</option><option value="goalB">Desde arco B</option><option value="low">A ras del campo</option></select><button id="resetCamera" title="Restablecer cámara">↺ Cámara</button></span><button id="animate">▶ Animar jugada</button><button id="stop" class="hide-mobile">■ Detener</button></div>
+<canvas id="pitch" width="1000" height="620" aria-label="Pizarra táctica interactiva"></canvas>
+<div id="threeView" aria-label="Campo de fútbol tridimensional"><div class="three-hint">Arrastra con un dedo para girar · pellizca para zoom · selecciona y arrastra jugadores</div></div>
+<div class="status" id="status">Seleccionar: arrastra elementos. Flecha/Movimiento/Línea: arrastra desde el inicio hasta el final.</div>
+<div class="timeline-panel">
+  <div class="timeline-head">
+    <strong>Fotogramas clave</strong>
+    <button id="prevFrame">◀ Anterior</button><button id="nextFrame">Siguiente ▶</button>
+    <button id="addFrame" class="primary">＋ Añadir fotograma</button><button id="deleteFrame" title="Eliminar el fotograma seleccionado">🗑️ Eliminar fotograma</button>
+  </div>
+  <div id="frameChips" class="framesbar"></div>
+  <div class="row"><label>Duración</label><input id="duration" type="number" min="0.2" max="60" step="0.2" value="2"><span class="small">segundos por intervalo</span></div>
+  <div class="timeline-head">
+    <button id="playFrames" class="primary">▶ Reproducir secuencia</button><button id="pauseFrames">Ⅱ Pausar</button><button id="stopFrames">■ Detener</button>
+    <button id="exportVideo2D" title="Descargar la animación como vídeo 2D">⬇ Vídeo 2D</button><button id="exportVideo3D" title="Descargar la animación como vídeo 3D">⬇ Vídeo 3D</button>
+    <span id="frameTime" class="time-readout">Fotograma 1 · 0.0 s</span>
+  </div>
+  <div class="frame-track"><div id="frameMarkers" class="frame-markers"></div></div>
+  <div class="small">Selecciona un fotograma, mueve los jugadores o el balón y continúa con el siguiente. Cada fotograma guarda una copia de la escena. Exporta por separado en vídeo 2D o 3D (WebM).</div>
+</div>
+<div class="project-library">
+  <div class="timeline-head"><strong>Mis proyectos en este teléfono</strong><button id="saveNamedProject" class="primary">Guardar proyecto</button></div>
+  <div class="row"><label>Nombre</label><input id="projectName" placeholder="Ej. Salida desde atrás"></div>
+  <div class="project-list" id="projectList"><div class="small">Cargando proyectos guardados…</div></div>
+  <div class="install-hint" id="storageHint">Los proyectos se guardan en el almacenamiento de este navegador/dispositivo. Exporta una copia JSON para transferirlos o hacer una copia de seguridad.</div>
+</div>
+<div class="row"><label>Progreso</label><input id="timeline" type="range" min="0" max="100" value="0"><span id="timeLabel" class="small">0%</span></div>
+<div class="bottom-actions"><button id="exportPng">Exportar PNG</button><button id="exportJson">Descargar proyecto</button><button id="importBtn">Importar proyecto</button><input type="file" id="importFile" accept=".json,application/json" hidden><button id="reset">Restablecer ejemplo</button></div>
+</div>
+</section>
+<aside class="right">
+<div class="panel"><h2>Elemento seleccionado</h2><div id="selectionInfo" class="small">Ningún elemento seleccionado.</div>
+<div class="row"><label>Etiqueta</label><input id="labelInput" placeholder="Ej. Delantero 9"></div>
+<div class="row"><label>Tamaño</label><input id="sizeInput" type="range" min="8" max="42" value="17"></div>
+
+<hr><h2>Notas de la jugada</h2><textarea id="notes" rows="4" class="wide" placeholder="Objetivo, consignas, variantes..."></textarea><button id="saveNotes" class="wide" style="margin-top:7px">Guardar notas</button></div>
+<div class="panel"><h2>Secuencia</h2><div class="small">Guarda posiciones y dibujos como un proyecto JSON. La animación recorre las trayectorias dibujadas.</div><div id="objectList"></div></div>
+</aside>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const c=document.getElementById('pitch'),ctx=c.getContext('2d'); const $=id=>document.getElementById(id);
+let objects=[],selected=null,tool='select',drag=null,drawStart=null,history=[],flip=false,animating=false,animFrame=0,progress=0,notes='';
+let textSizeDefault='medium',textAnimationDefault='none';
+const colors=()=>({A:$('colorA').value,B:$('colorB').value});
+function snap(){history.push(JSON.stringify(objects));if(history.length>40)history.shift()}
+function setStatus(s){$('status').textContent=s}
+function pos(e){const r=c.getBoundingClientRect();return {x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height}}
+function field(){ctx.clearRect(0,0,c.width,c.height);let v=$('view').value;ctx.fillStyle='#187447';ctx.fillRect(0,0,c.width,c.height);
+for(let i=0;i<10;i++){ctx.fillStyle=i%2?'#187447':'#1b7c4c';ctx.fillRect(i*c.width/10,0,c.width/10,c.height)}
+ctx.strokeStyle='rgba(255,255,255,.88)';ctx.lineWidth=3;ctx.strokeRect(22,22,c.width-44,c.height-44);
+ctx.beginPath();ctx.moveTo(500,22);ctx.lineTo(500,598);ctx.stroke();ctx.beginPath();ctx.arc(500,310,76,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(500,310,4,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+ctx.strokeRect(22,190,145,240);ctx.strokeRect(22,245,55,130);ctx.strokeRect(833,190,145,240);ctx.strokeRect(923,245,55,130);
+ctx.beginPath();ctx.arc(130,310,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(870,310,4,0,Math.PI*2);ctx.fill();
+ctx.beginPath();ctx.arc(130,310,76,-.85,.85);ctx.stroke();ctx.beginPath();ctx.arc(870,310,76,Math.PI-.85,Math.PI+.85);ctx.stroke();
+if(v==='half'){ctx.fillStyle='rgba(5,20,15,.52)';ctx.fillRect(500,0,500,620)}
+if(v==='vertical'){ctx.save();ctx.translate(500,310);ctx.rotate(Math.PI/2);ctx.translate(-500,-310);ctx.fillStyle='rgba(5,20,15,.15)';ctx.fillRect(0,0,1000,620);ctx.restore()}
+objects.forEach((o,i)=>drawObj(o,i));}
+function drawArrow(o,ghost=false){ctx.save();ctx.strokeStyle=o.color||'#fff';ctx.lineWidth=o.type==='run'?4:3;ctx.setLineDash(o.type==='run'?[10,8]:[]);ctx.beginPath();ctx.moveTo(o.x,o.y);
+if(o.type==='zigzag'){
+  const dx=o.x2-o.x,dy=o.y2-o.y,len=Math.hypot(dx,dy)||1,n=Math.max(4,Math.min(18,Math.floor(len/22))),nx=-dy/len,ny=dx/len,amp=Math.min(15,len/(n*2.2));
+  for(let k=1;k<n;k++){const t=k/n,off=(k%2?1:-1)*amp;ctx.lineTo(o.x+dx*t+nx*off,o.y+dy*t+ny*off)}
+  ctx.lineTo(o.x2,o.y2);
+}else{ctx.lineTo(o.x2,o.y2)}
+ctx.stroke();let a=Math.atan2(o.y2-o.y,o.x2-o.x);ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(o.x2,o.y2);ctx.lineTo(o.x2-15*Math.cos(a-.45),o.y2-15*Math.sin(a-.45));ctx.lineTo(o.x2-15*Math.cos(a+.45),o.y2-15*Math.sin(a+.45));ctx.closePath();ctx.fillStyle=o.color||'#fff';ctx.fill();ctx.restore()}
+function textBaseSize(o){const sizes={small:14,medium:20,large:32};return sizes[o.textSize]||o.size||20}
+function textEffect(o,now=performance.now()){
+ const t=now/1000, phase=(t*2.4)%(Math.PI*2), a=o.textAnimation||'none';
+ return {a,scale:a==='pulse'?1+0.16*Math.sin(phase):1,dy:a==='bounce'?-Math.abs(Math.sin(t*3.2))*15:0,dx:a==='slide'?((t*32)%48)-24:a==='shake'?Math.sin(t*35)*3:0,alpha:a==='fade'?.25+.75*(.5+.5*Math.sin(t*2.6)):1};
+}
+function drawObj(o,i){ctx.save();if(o.type==='arrow'||o.type==='run'||o.type==='line'||o.type==='zigzag'){drawArrow(o);if(i===selected){ctx.strokeStyle='#ffe66d';ctx.setLineDash([4,4]);ctx.strokeRect(Math.min(o.x,o.x2)-5,Math.min(o.y,o.y2)-5,Math.abs(o.x2-o.x)+10,Math.abs(o.y2-o.y)+10)}}
+else if(o.type==='player'){ctx.beginPath();ctx.arc(o.x,o.y,o.size||17,0,Math.PI*2);ctx.fillStyle=o.color||colors()[o.team||'A'];ctx.fill();ctx.lineWidth=i===selected?4:2;ctx.strokeStyle=i===selected?'#ffe66d':'white';ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 15px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(o.num||'',o.x,o.y);if(o.label){ctx.font='12px system-ui';ctx.fillText(o.label,o.x,o.y+(o.size||17)+13)}}
+else if(o.type==='ball'){ctx.beginPath();ctx.arc(o.x,o.y,o.size||12,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#111';ctx.font=`bold ${Math.max(12,(o.size||12)*1.33)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⚽',o.x,o.y)}
+else if(o.type==='cone'){ctx.fillStyle='#ff7138';ctx.beginPath();ctx.moveTo(o.x,o.y-(o.size||18));ctx.lineTo(o.x-(o.size||18),o.y+(o.size||18));ctx.lineTo(o.x+(o.size||18),o.y+(o.size||18));ctx.closePath();ctx.fill();ctx.strokeStyle=i===selected?'#ffe66d':'white';ctx.stroke()}
+else if(o.type==='text'){const ef=textEffect(o);ctx.globalAlpha=ef.alpha;ctx.fillStyle=o.color||'#fff';ctx.font=`bold ${Math.round(textBaseSize(o)*ef.scale)}px system-ui`;ctx.textAlign='center';let label=o.label||'Texto';if(ef.a==='typewriter')label=label.slice(0,Math.max(1,Math.floor((performance.now()/180)% (label.length+1))));ctx.fillText(label,o.x+ef.dx,o.y+ef.dy)}
+if(i===selected&&['player','ball','cone','text'].includes(o.type)){ctx.strokeStyle='#ffe66d';ctx.setLineDash([4,4]);ctx.beginPath();ctx.arc(o.x,o.y,(o.size||17)+7,0,Math.PI*2);ctx.stroke()}ctx.restore()}
+let textAnimationLoopStarted=false;
+function startTextAnimationLoop(){
+ if(textAnimationLoopStarted)return;textAnimationLoopStarted=true;
+ const tick=()=>{if(objects.some(o=>o.type==='text'&&(o.textAnimation||'none')!=='none')){field();if(is3D&&threeReady)render3D()}requestAnimationFrame(tick)};
+ requestAnimationFrame(tick);
+}
+startTextAnimationLoop();
+function render(){field();$('objectList').innerHTML=objects.map((o,i)=>`<div class="listitem" data-i="${i}" style="outline:${i===selected?'2px solid #18c6b4':'none'}"><span class="dot" style="background:${o.color|| (o.team?colors()[o.team]:'#fff')}"></span><span style="flex:1">${o.type==='player'?'Jugador '+(o.num||''):o.type==='run'?'Movimiento':o.type==='arrow'?'Flecha':o.type==='line'?'Línea':o.type==='zigzag'?'Zigzag':o.type==='ball'?'Balón':o.type==='cone'?'Cono':o.label||'Texto'}</span><button data-del="${i}" aria-label="Eliminar">×</button></div>`).join('');$('selectionInfo').textContent=selected===null?'Ningún elemento seleccionado.':`${objects[selected].type} · X ${Math.round(objects[selected].x)} · Y ${Math.round(objects[selected].y)}`;$('labelInput').value=selected!==null?(objects[selected].label||''):'';$('sizeInput').value=selected!==null?(objects[selected].size||17):17;const isText=selected!==null&&objects[selected].type==='text';$('textControls').hidden=false;$('textControls').classList.toggle('text-active',isText);if(isText){$('textSizePreset').value=objects[selected].textSize||'medium';$('textAnimation').value=objects[selected].textAnimation||'none';textSizeDefault=$('textSizePreset').value;textAnimationDefault=$('textAnimation').value}if(is3D)render3D();}
+let is3D=false, threeReady=false, threeScene, threeCamera, threeRenderer, threeRoot, threeObjectRoot, threeRaycaster, threePointer, threeGround, threeDrag=null, threeLast=null, threeCameraTarget={x:0,y:0,z:0}, threeSpherical={theta:0.28,phi:0.82,radius:94},threePointers=new Map(),threePinchStart=null;
+function worldXY(x,y){return new THREE.Vector3((x-500)/10,0.12,(y-310)/10)}
+function coordsFromWorld(v){return {x:Math.max(22,Math.min(978,v.x*10+500)),y:Math.max(22,Math.min(598,v.z*10+310))}}
+function mat(color,roughness=.72){return new THREE.MeshStandardMaterial({color,roughness,metalness:0.02})}
+function addLine3(points,color='#ffffff',width=0.12,dashed=false){const pts=points.map(p=>new THREE.Vector3(p.x,p.y,p.z));const geo=new THREE.BufferGeometry().setFromPoints(pts);let material=new THREE.LineBasicMaterial({color,transparent:true,opacity:.96});let line=new THREE.Line(geo,material);threeRoot.add(line);return line}
+function addPitchLine(points,color='#f2f8f3'){addLine3(points.map(p=>({x:p[0],y:.09,z:p[1]})),color)}
+function textSprite(text,color='#ffffff'){const cv=document.createElement('canvas');cv.width=256;cv.height=128;const cx=cv.getContext('2d');cx.clearRect(0,0,256,128);cx.fillStyle='rgba(4,14,19,.78)';cx.beginPath();cx.roundRect(18,16,220,96,22);cx.fill();cx.strokeStyle='rgba(255,255,255,.6)';cx.lineWidth=4;cx.stroke();cx.fillStyle=color;cx.font='bold 64px system-ui';cx.textAlign='center';cx.textBaseline='middle';cx.fillText(String(text).slice(0,12),128,66);const tex=new THREE.CanvasTexture(cv);const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));sprite.scale.set(3.2,1.6,1);return sprite}
+function buildThree(){if(threeReady)return;if(!window.THREE){$('status').textContent='No se pudo cargar el motor 3D. Comprueba tu conexión a internet y vuelve a pulsar 3D.';return}const host=$('threeView');threeScene=new THREE.Scene();threeScene.background=new THREE.Color('#101a20');threeScene.fog=new THREE.Fog('#101a20',100,190);threeCamera=new THREE.PerspectiveCamera(42,1,.1,500);threeRenderer=new THREE.WebGLRenderer({antialias:true,alpha:false});threeRenderer.setPixelRatio(Math.min(devicePixelRatio||1,2));threeRenderer.shadowMap.enabled=true;threeRenderer.shadowMap.type=THREE.PCFSoftShadowMap;threeRenderer.outputColorSpace=THREE.SRGBColorSpace;threeRenderer.toneMapping=THREE.ACESFilmicToneMapping;threeRenderer.toneMappingExposure=1.15;host.prepend(threeRenderer.domElement);threeRaycaster=new THREE.Raycaster();threePointer=new THREE.Vector2();
+threeScene.add(new THREE.HemisphereLight('#d9f3ff','#233522',2.05));const sun=new THREE.DirectionalLight('#fff0d2',3.0);sun.position.set(-25,65,-18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=50;sun.shadow.camera.bottom=-50;threeScene.add(sun);const fill=new THREE.DirectionalLight('#75aaff',.7);fill.position.set(40,25,35);threeScene.add(fill);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(145,105),mat('#18272b'));ground.rotation.x=-Math.PI/2;ground.position.y=-.45;ground.receiveShadow=true;threeScene.add(ground);
+const turf=new THREE.Mesh(new THREE.PlaneGeometry(100,62),mat('#176b3e',.95));turf.rotation.x=-Math.PI/2;turf.position.y=0;turf.receiveShadow=true;turf.userData.isGround=true;threeScene.add(turf);threeGround=turf;
+for(let i=0;i<10;i++){const stripe=new THREE.Mesh(new THREE.PlaneGeometry(10,62),mat(i%2?'#197543':'#1b8049',1));stripe.rotation.x=-Math.PI/2;stripe.position.set(-45+i*10,.015,0);stripe.receiveShadow=true;threeScene.add(stripe)}
+threeRoot=new THREE.Group();threeScene.add(threeRoot);const lineY=.08;addPitchLine([[-49,-30],[49,-30],[49,30],[-49,30],[-49,-30]]);addPitchLine([[0,-30],[0,30]]);const circle=[];for(let i=0;i<=80;i++){const a=i/80*Math.PI*2;circle.push([9.15*Math.cos(a),9.15*Math.sin(a)])}addPitchLine(circle);addPitchLine([[-49,-20],[-32,-20],[-32,20],[-49,20]]);addPitchLine([[-49,-9],[-43,-9],[-43,9],[-49,9]]);addPitchLine([[49,-20],[32,-20],[32,20],[49,20]]);addPitchLine([[49,-9],[43,-9],[43,9],[49,9]]);addPitchLine([[-49,-12],[-46,-12],[-46,12],[-49,12]]);addPitchLine([[49,-12],[46,-12],[46,12],[49,12]]);
+function goal(x,sign){const white=mat('#f0f5f4',.35),postGeo=new THREE.CylinderGeometry(.12,.12,.0+2.4,10);for(const z of [-3.66,3.66]){const post=new THREE.Mesh(postGeo,white);post.position.set(x,1.2,z);post.castShadow=true;threeScene.add(post)}const bar=new THREE.Mesh(new THREE.BoxGeometry(.18, .18,7.32),white);bar.position.set(x,2.4,0);bar.castShadow=true;threeScene.add(bar);const net=new THREE.Mesh(new THREE.BoxGeometry(2.2,2.35,7.2),new THREE.MeshStandardMaterial({color:'#d9e3e5',wireframe:true,transparent:true,opacity:.28}));net.position.set(x-sign*1.1,1.2,0);threeScene.add(net)}goal(-49,1);goal(49,-1);
+// Stadium seating, touchline benches, corner flags and ambient architecture
+for(const side of [-1,1]){for(let row=0;row<5;row++){const seat=new THREE.Mesh(new THREE.BoxGeometry(112,.9,2.2),mat(row%2?'#263c48':'#304d5b'));seat.position.set(0,1.2+row*.85,side*(34+row*1.6));seat.castShadow=true;threeScene.add(seat)}const bench=new THREE.Mesh(new THREE.BoxGeometry(8,1.6,1.4),mat('#c9d6d9',.35));bench.position.set(0,.85,side*34);threeScene.add(bench)}
+const floodMat=mat('#dbe9e9',.25);for(const x of [-56,56])for(const z of [-36,36]){const pole=new THREE.Mesh(new THREE.CylinderGeometry(.18,.28,16,8),mat('#66747a'));pole.position.set(x,8,z);pole.castShadow=true;threeScene.add(pole);const lamp=new THREE.Mesh(new THREE.BoxGeometry(3,.5,1),floodMat);lamp.position.set(x,16,z);threeScene.add(lamp)}
+threeObjectRoot=new THREE.Group();threeRoot.add(threeObjectRoot);threeReady=true;resizeThree();updateThreeCamera();animateThree();}
+function resizeThree(){if(!threeRenderer)return;const host=$('threeView'),w=Math.max(1,host.clientWidth),h=Math.max(1,host.clientHeight);threeRenderer.setSize(w,h,false);threeCamera.aspect=w/h;threeCamera.updateProjectionMatrix()}
+function updateThreeCamera(){if(!threeCamera)return;const {theta,phi,radius}=threeSpherical;threeCamera.position.set(threeCameraTarget.x+radius*Math.sin(phi)*Math.sin(theta),threeCameraTarget.y+radius*Math.cos(phi),threeCameraTarget.z+radius*Math.sin(phi)*Math.cos(theta));threeCamera.lookAt(threeCameraTarget.x,threeCameraTarget.y,threeCameraTarget.z)}
+function setCameraPreset(name){
+ const presets={broadcast:{theta:.28,phi:.82,radius:94,target:{x:0,y:0,z:0}},top:{theta:0,phi:.16,radius:91,target:{x:0,y:0,z:0}},sideline:{theta:Math.PI/2,phi:.88,radius:100,target:{x:0,y:0,z:0}},goalA:{theta:-Math.PI/2,phi:.78,radius:78,target:{x:-12,y:0,z:0}},goalB:{theta:Math.PI/2,phi:.78,radius:78,target:{x:12,y:0,z:0}},low:{theta:.25,phi:1.27,radius:83,target:{x:0,y:0,z:0}}};
+ const p=presets[name]||presets.broadcast;threeSpherical.theta=p.theta;threeSpherical.phi=p.phi;threeSpherical.radius=p.radius;threeCameraTarget={...p.target};updateThreeCamera();if(threeReady)threeRenderer.render(threeScene,threeCamera);
+}
+$('cameraAngle').addEventListener('change',e=>{if(!is3D){$('toggle3d').click()}setCameraPreset(e.target.value)});
+$('resetCamera').addEventListener('click',()=>{setCameraPreset($('cameraAngle').value||'broadcast');setStatus('Ángulo de cámara restablecido. Arrastra para rotar y pellizca para acercar o alejar.')});
+function animateThree(){if(!threeRenderer)return;requestAnimationFrame(animateThree);if(is3D){resizeThree();threeRenderer.render(threeScene,threeCamera)}}
+function makePlayer(o,i){
+ const g=new THREE.Group(),color=o.color||colors()[o.team||'A'];
+ const jersey=mat(color,.58),dark=mat('#20262c'),skin=mat('#b9825c'),shorts=mat(o.team==='B'?'#f4f5f7':'#e9eef4'),sock=mat(o.team==='B'?'#f4f5f7':color),shoeMat=mat('#101418',.42),hair=mat('#30251f');
+ const scale=Math.max(.72,Math.min(1.55,(o.size||17)/17));g.scale.setScalar(scale);
+ // Torso and shoulders give the player a recognisable athletic silhouette.
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.43,.68,6,12),jersey);torso.position.y=1.42;torso.castShadow=true;g.add(torso);
+ const shoulders=new THREE.Mesh(new THREE.SphereGeometry(.47,16,10),jersey);shoulders.scale.set(1,.52,.72);shoulders.position.set(0,1.77,0);shoulders.castShadow=true;g.add(shoulders);
+ const neck=new THREE.Mesh(new THREE.CylinderGeometry(.115,.14,.18,12),skin);neck.position.y=1.93;g.add(neck);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.265,18,14),skin);head.position.y=2.18;head.scale.set(.92,1.08,.9);head.castShadow=true;g.add(head);
+ const hairCap=new THREE.Mesh(new THREE.SphereGeometry(.272,16,8,0,Math.PI*2,0,Math.PI*.53),hair);hairCap.position.y=2.24;hairCap.castShadow=true;g.add(hairCap);
+ // Shorts, socks and boots are separate shapes rather than one generic body.
+ const shortsMesh=new THREE.Mesh(new THREE.CylinderGeometry(.36,.39,.34,14),shorts);shortsMesh.position.y=.91;shortsMesh.castShadow=true;g.add(shortsMesh);
+ for(const side of [-1,1]){
+   const sleeve=new THREE.Mesh(new THREE.CapsuleGeometry(.145,.23,4,8),jersey);sleeve.position.set(side*.49,1.57,0);sleeve.rotation.z=side*.42;sleeve.castShadow=true;g.add(sleeve);
+   const arm=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.42,5,8),skin);arm.position.set(side*.59,1.27,.015);arm.rotation.z=side*.16;arm.castShadow=true;g.add(arm);
+   const hand=new THREE.Mesh(new THREE.SphereGeometry(.105,10,8),skin);hand.position.set(side*.62,1.02,.02);g.add(hand);
+   const thigh=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.35,5,10),shorts);thigh.position.set(side*.19,.62,0);thigh.rotation.z=side*.025;thigh.castShadow=true;g.add(thigh);
+   const sockMesh=new THREE.Mesh(new THREE.CylinderGeometry(.105,.13,.37,12),sock);sockMesh.position.set(side*.2,.29,0);sockMesh.castShadow=true;g.add(sockMesh);
+   const boot=new THREE.Mesh(new THREE.BoxGeometry(.25,.13,.42),shoeMat);boot.position.set(side*.2,.085,-.095);boot.castShadow=true;g.add(boot);
+   const sole=new THREE.Mesh(new THREE.BoxGeometry(.26,.035,.43),mat('#d5d9dc',.55));sole.position.set(side*.2,.025,-.095);g.add(sole);
+ }
+ // Front and rear shirt numbers remain legible from most camera angles.
+ const num=textSprite(o.num||'');num.position.set(0,1.49,.445);num.scale.set(.38,.26,.08);g.add(num);
+ const backNum=textSprite(o.num||'');backNum.position.set(0,1.48,-.445);backNum.rotation.y=Math.PI;backNum.scale.set(.34,.24,.08);g.add(backNum);
+ // Subtle team-coloured collar detail.
+ const collar=new THREE.Mesh(new THREE.TorusGeometry(.16,.035,6,16),mat(o.team==='B'?'#e7e9eb':'#f5f5f5'));collar.position.set(0,1.82,.02);collar.rotation.x=Math.PI/2;g.add(collar);
+ g.position.copy(worldXY(o.x,o.y));g.position.y=0;g.userData.objectIndex=i;g.traverse(m=>{if(m.isMesh){m.castShadow=true;m.receiveShadow=true;m.userData.objectIndex=i}});return g
+}
+function soccerBallTexture(){
+ const cv=document.createElement('canvas');cv.width=1024;cv.height=512;const c=cv.getContext('2d');c.fillStyle='#f7f7f2';c.fillRect(0,0,cv.width,cv.height);
+ // Traditional stitched football panel pattern, painted as a seamless spherical texture.
+ const pent=(cx,cy,rad,rot=-Math.PI/2)=>{c.beginPath();for(let j=0;j<5;j++){const a=rot+j*Math.PI*2/5,x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad;if(j===0)c.moveTo(x,y);else c.lineTo(x,y)}c.closePath();c.fillStyle='#171b20';c.fill();c.strokeStyle='#c8cbc8';c.lineWidth=4;c.stroke()};
+ const hex=(cx,cy,rad,rot=0)=>{c.beginPath();for(let j=0;j<6;j++){const a=rot+j*Math.PI/3,x=cx+Math.cos(a)*rad,y=cy+Math.sin(a)*rad;if(j===0)c.moveTo(x,y);else c.lineTo(x,y)}c.closePath();c.strokeStyle='#aeb5b3';c.lineWidth=3;c.stroke()};
+ const r=42;for(let y=-30,row=0;y<560;y+=74,row++){for(let x=-20+(row%2)*48;x<1060;x+=96){hex(x,y,r);}}
+ [[112,92],[304,82],[496,92],[688,82],[880,92],[208,222],[400,212],[592,222],[784,212],[112,352],[304,342],[496,352],[688,342],[880,352],[208,482],[400,472],[592,482],[784,472]].forEach(([x,y])=>pent(x,y,38));
+ const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=4;return tex;
+}
+let _soccerTexture=null;
+function makeBall(o,i){const g=new THREE.Group(),r=Math.max(.38,Math.min(1.05,(o.size||12)/15));if(!_soccerTexture)_soccerTexture=soccerBallTexture();const shellMat=new THREE.MeshStandardMaterial({map:_soccerTexture,color:'#ffffff',roughness:.46,metalness:0});const ball=new THREE.Mesh(new THREE.SphereGeometry(r,48,32),shellMat);ball.castShadow=true;ball.receiveShadow=true;g.add(ball);const seam=new THREE.Mesh(new THREE.SphereGeometry(r*1.002,48,32),new THREE.MeshBasicMaterial({color:'#343a3b',wireframe:true,transparent:true,opacity:.12}));g.add(seam);g.position.copy(worldXY(o.x,o.y));g.position.y=r;g.userData.objectIndex=i;g.traverse(m=>m.userData.objectIndex=i);return g}
+function makeCone(o,i){const g=new THREE.Group(),r=Math.max(.5,(o.size||18)/17);const cone=new THREE.Mesh(new THREE.ConeGeometry(.65*r,1.6*r,16),mat('#ff7138',.48));cone.position.y=.8*r;cone.castShadow=true;g.add(cone);const base=new THREE.Mesh(new THREE.CylinderGeometry(.7*r,.7*r,.12*r,16),mat('#f8f4e7'));base.position.y=.08*r;g.add(base);g.position.copy(worldXY(o.x,o.y));g.userData.objectIndex=i;g.traverse(m=>m.userData.objectIndex=i);return g}
+function makeTacticalLine(o,i){const g=new THREE.Group(),start=worldXY(o.x,o.y),end=worldXY(o.x2??o.x,o.y2??o.y);start.y=.28;end.y=.28;const dir=end.clone().sub(start),len=dir.length();if(len<.01)return g;const color=o.color||'#ffffff';const tube=new THREE.Mesh(new THREE.CylinderGeometry(.075,.075,len,8),mat(color));tube.position.copy(start.clone().add(end).multiplyScalar(.5));tube.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());g.add(tube);if(o.type!=='line'){const head=new THREE.Mesh(new THREE.ConeGeometry(.28,.85,12),mat(color));head.position.copy(end);head.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.clone().normalize());g.add(head)}if(o.type==='zigzag'){for(let t=.2;t<.9;t+=.2){const p=start.clone().lerp(end,t);p.z+=(Math.round(t*10)%2?1:-1)*.55;const dot=new THREE.Mesh(new THREE.SphereGeometry(.13,8,6),mat(color));dot.position.copy(p);g.add(dot)}}g.userData.objectIndex=i;g.traverse(m=>m.userData.objectIndex=i);return g}
+function render3D(){if(!threeReady)return;while(threeObjectRoot.children.length){const child=threeObjectRoot.children[0];threeObjectRoot.remove(child);child.traverse?.(m=>{m.geometry?.dispose?.();if(Array.isArray(m.material))m.material.forEach(x=>x.dispose?.());else m.material?.dispose?.()})}objects.forEach((o,i)=>{let g;if(o.type==='player')g=makePlayer(o,i);else if(o.type==='ball')g=makeBall(o,i);else if(o.type==='cone')g=makeCone(o,i);else if(['arrow','run','line','zigzag'].includes(o.type))g=makeTacticalLine(o,i);else if(o.type==='text'){g=new THREE.Group();const sp=textSprite(o.label||'Texto',o.color||'#ffffff');const ef=textEffect(o);sp.position.y=1.3+ef.dy/24;sp.position.x=ef.dx/24;sp.material.opacity=ef.alpha;const scale={small:2.4,medium:3.2,large:4.6}[o.textSize]||3.2;sp.scale.set(scale*ef.scale,scale*.5*ef.scale,1);g.add(sp);g.position.copy(worldXY(o.x,o.y));g.userData.objectIndex=i;g.traverse(m=>m.userData.objectIndex=i)}if(g){if(i===selected){const halo=new THREE.Mesh(new THREE.TorusGeometry(o.type==='player'?1.25:.8,.055,8,32),mat('#ffe66d'));halo.rotation.x=Math.PI/2;halo.position.y=.16;g.add(halo)}threeObjectRoot.add(g)}});threeRenderer?.render(threeScene,threeCamera)}
+function pointerNDC(e){const r=threeRenderer.domElement.getBoundingClientRect();threePointer.x=((e.clientX-r.left)/r.width)*2-1;threePointer.y=-((e.clientY-r.top)/r.height)*2+1;threeRaycaster.setFromCamera(threePointer,threeCamera)}
+function groundPoint(e){pointerNDC(e);const hit=threeRaycaster.intersectObject(threeGround,false)[0];return hit?coordsFromWorld(hit.point):null}
+function objectAt(e){pointerNDC(e);const hits=threeRaycaster.intersectObjects(threeObjectRoot.children,true);for(const h of hits){let m=h.object;while(m&&m.userData.objectIndex===undefined)m=m.parent;if(m&&m.userData.objectIndex!==undefined)return m.userData.objectIndex}return null}
+function add3DAt(p){if(!p)return;if(['arrow','run','line','zigzag'].includes(tool)){threeDrag={kind:'draw',start:p};return}snap();let o;if(tool==='player'){let team=$('team').value;o={type:'player',x:p.x,y:p.y,team,color:colors()[team],num:objects.filter(x=>x.type==='player'&&x.team===team).length+1,size:17}}else if(tool==='ball')o={type:'ball',x:p.x,y:p.y,size:Number($('ballSize').value)||12};else if(tool==='cone')o={type:'cone',x:p.x,y:p.y,size:17};else if(tool==='text'){let label=prompt('Texto que quieres colocar:','Nueva jugada');if(label===null)return;o={type:'text',x:p.x,y:p.y,label,size:20,textSize:textSizeDefault,textAnimation:textAnimationDefault,color:'#fff'}}if(o){objects.push(o);selected=objects.length-1;tool='select';document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));render()}}
+function threeDown(e){if(!is3D)return;threePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});threeRenderer.domElement.setPointerCapture(e.pointerId);threeLast={x:e.clientX,y:e.clientY};
+ if(threePointers.size>=2){const pts=[...threePointers.values()];threeDrag={kind:'pinch'};threePinchStart={distance:Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y),radius:threeSpherical.radius};return}
+ const p=groundPoint(e);if(tool==='select'){const idx=objectAt(e);if(idx!==null){selected=idx;snap();const obj=objects[idx];threeDrag={kind:'move',idx,offsetX:p?p.x-obj.x:0,offsetY:p?p.y-obj.y:0,offsetX2:p&&obj.x2!==undefined?p.x-obj.x2:0,offsetY2:p&&obj.y2!==undefined?p.y-obj.y2:0};render();return}threeDrag={kind:'orbit'};return}if(p){if(['arrow','run','line','zigzag'].includes(tool)){threeDrag={kind:'draw',start:p};return}add3DAt(p)}}
+function threeMove(e){if(!is3D||!threePointers.has(e.pointerId))return;threePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(threePointers.size>=2&&threePinchStart){const pts=[...threePointers.values()];const dist=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);threeSpherical.radius=Math.max(34,Math.min(165,threePinchStart.radius*threePinchStart.distance/Math.max(1,dist)));updateThreeCamera();threeLast={x:e.clientX,y:e.clientY};return}if(!threeLast)return;const dx=e.clientX-threeLast.x,dy=e.clientY-threeLast.y;if(threeDrag?.kind==='orbit'){threeSpherical.theta-=dx*.006;threeSpherical.phi=Math.max(.13,Math.min(1.48,threeSpherical.phi+dy*.005));updateThreeCamera()}else if(threeDrag?.kind==='move'){const p=groundPoint(e);if(p){const o=objects[threeDrag.idx];o.x=p.x-threeDrag.offsetX;o.y=p.y-threeDrag.offsetY;if(o.x2!==undefined){o.x2=p.x-threeDrag.offsetX2;o.y2=p.y-threeDrag.offsetY2}render()}}threeLast={x:e.clientX,y:e.clientY}}
+function threeUp(e){threePointers.delete(e.pointerId);if(threePointers.size<2)threePinchStart=null;if(threeDrag?.kind==='draw'){const p=groundPoint(e),s=threeDrag.start;if(p&&Math.hypot(p.x-s.x,p.y-s.y)>8){objects.push({type:tool,x:s.x,y:s.y,x2:p.x,y2:p.y,color:tool==='run'?'#ffef68':'#fff'});selected=objects.length-1}tool='select';document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));render()}if(!threePointers.size){threeDrag=null;threeLast=null}else{threeDrag={kind:'orbit'};const pts=[...threePointers.values()][0];threeLast={x:pts.x,y:pts.y}}}
+function threeWheel(e){if(!is3D)return;e.preventDefault();threeSpherical.radius=Math.max(34,Math.min(165,threeSpherical.radius+e.deltaY*.06));updateThreeCamera()}
+$('toggle3d').onclick=()=>{is3D=!is3D;const wrap=document.querySelector('.fieldwrap'),btn=$('toggle3d');wrap.classList.toggle('view3d',is3D);btn.classList.toggle('active',is3D);btn.setAttribute('aria-pressed',String(is3D));btn.textContent=is3D?'▰ 2D':'▱ 3D';if(is3D){buildThree();if(threeReady){render3D();resizeThree();setCameraPreset($('cameraAngle').value||'broadcast')}}setStatus(is3D?'Vista 3D real: campo volumétrico, jugadores modelados, porterías, césped, grada y cámara orbital. Arrastra para girar y usa la rueda para acercar.':'Vista 2D activada. Puedes seguir editando y arrastrando los elementos.');};
+const threeHost=$('threeView');threeHost.addEventListener('pointerdown',threeDown);threeHost.addEventListener('pointermove',threeMove);threeHost.addEventListener('pointerup',threeUp);threeHost.addEventListener('pointercancel',threeUp);threeHost.addEventListener('wheel',threeWheel,{passive:false});window.addEventListener('resize',()=>{if(threeReady)resizeThree()});
+function hit(p){for(let i=objects.length-1;i>=0;i--){let o=objects[i],d=Math.hypot(p.x-o.x,p.y-o.y);if(o.type==='text'){const approximateWidth=Math.max(40,(o.label||'Texto').length*textBaseSize(o)*0.62);if(Math.abs(p.x-o.x)<approximateWidth/2+18&&Math.abs(p.y-o.y)<textBaseSize(o)+22)return i}else if(['arrow','run','line','zigzag'].includes(o.type)){let dx=o.x2-o.x,dy=o.y2-o.y,t=Math.max(0,Math.min(1,((p.x-o.x)*dx+(p.y-o.y)*dy)/(dx*dx+dy*dy||1)));if(Math.hypot(p.x-o.x-t*dx,p.y-o.y-t*dy)<15)return i}else if(d<(o.size||17)+10)return i}return null}
+c.addEventListener('pointerdown',e=>{const p=pos(e);c.setPointerCapture(e.pointerId);if(tool==='select'){selected=hit(p);if(selected!==null){snap();drag={kind:'move',idx:selected,ox:p.x-objects[selected].x,oy:p.y-objects[selected].y,ox2:p.x-objects[selected].x2,oy2:p.y-objects[selected].y2}}render();return}
+if(['arrow','run','line','zigzag'].includes(tool)){drawStart=p;drag={kind:'draw',start:p};return}
+snap();let o;if(tool==='player'){let team=$('team').value;o={type:'player',x:p.x,y:p.y,team,color:colors()[team],num:objects.filter(x=>x.type==='player'&&x.team===team).length+1,size:17}}
+else if(tool==='ball')o={type:'ball',x:p.x,y:p.y,size:Number($('ballSize').value)||12};else if(tool==='cone')o={type:'cone',x:p.x,y:p.y,size:17};else if(tool==='text'){let label=prompt('Texto que quieres colocar:','Nueva jugada');if(label===null)return;o={type:'text',x:p.x,y:p.y,label,size:20,textSize:textSizeDefault,textAnimation:textAnimationDefault,color:'#fff'}}
+if(o){objects.push(o);selected=objects.length-1;tool='select';document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));render()}});
+c.addEventListener('pointermove',e=>{const p=pos(e);if(drag?.kind==='move'){let o=objects[drag.idx];o.x=p.x-drag.ox;o.y=p.y-drag.oy;if(o.x2!==undefined){o.x2=p.x-drag.ox2;o.y2=p.y-drag.oy2}render()}else if(drag?.kind==='draw'){field();drawArrow({type:tool,x:drag.start.x,y:drag.start.y,x2:p.x,y2:p.y,color:tool==='run'?'#ffef68':'#fff'})}});
+c.addEventListener('pointerup',e=>{if(drag?.kind==='draw'){let p=pos(e),s=drag.start;if(Math.hypot(p.x-s.x,p.y-s.y)>8){objects.push({type:tool,x:s.x,y:s.y,x2:p.x,y2:p.y,color:tool==='run'?'#ffef68':'#fff'});selected=objects.length-1}tool='select';document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===tool));render()}drag=null;drawStart=null});
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));setStatus(({select:'Seleccionar: arrastra elementos.',player:'Toca el campo para colocar un jugador.',ball:'Toca el campo para colocar el balón.',arrow:'Arrastra en el campo para dibujar una flecha.',run:'Arrastra para dibujar un recorrido de movimiento.',line:'Arrastra para dibujar una línea.',zigzag:'Arrastra para dibujar una trayectoria en zigzag.',cone:'Toca el campo para colocar un cono.',text:'Toca el campo para añadir un texto; cambia su tamaño o animación desde Herramientas de texto.'})[tool])});
+const FORMATIONS={
+ '4-3-3':[4,3,3], '4-2-3-1':[4,2,3,1], '4-4-2':[4,4,2], '4-2-2-2':[4,2,2,2],
+ '4-1-4-1':[4,1,4,1], '4-3-1-2':[4,3,1,2], '3-5-2':[3,5,2], '3-4-3':[3,4,3],
+ '5-3-2':[5,3,2], '5-4-1':[5,4,1], '3-4-2-1':[3,4,2,1], '4-5-1':[4,5,1]
+};
+function formationPlayers(team,formation,replaceTeam=true,extentOverride=null){
+ const lines=FORMATIONS[formation]||[4,3,3], existing=objects.filter(o=>o.type==='player'&&o.team===team);
+ if(existing.length&&!confirm(`El equipo ${team} ya tiene ${existing.length} jugadores. ¿Reemplazarlos por ${formation}?`))return false;
+ if(replaceTeam)objects=objects.filter(o=>!(o.type==='player'&&o.team===team));
+ const left=team==='A',extent=extentOverride||$('formationExtent').value;
+ const baseX=extent==='full'?(left?55:945):(left?85:915),dir=left?1:-1,span=extent==='full'?890:365;
+ // En media cancha el equipo se organiza en su mitad. En campo completo, las líneas
+ // de la formación se extienden desde su portería hasta el extremo opuesto del terreno.
+ const players=[{x:baseX,y:310,num:1,role:'POR'}];let num=2;
+ lines.forEach((count,lineIndex)=>{const depth=(lineIndex+1)/(lines.length+1);const x=baseX+dir*span*depth;for(let j=0;j<count;j++){const y=(j+1)*620/(count+1);players.push({x,y,num:num++,role:''})}});
+ const color=colors()[team];players.forEach(p=>objects.push({type:'player',x:p.x,y:p.y,team,color,num:p.num,size:17,label:p.role}));
+ selected=null;render();setStatus(`Sistema ${formation} aplicado al equipo ${team} en ${extent==='full'?'todo el campo':'su mitad del campo'}, con portero y ${lines.reduce((a,b)=>a+b,0)} jugadores de campo.`);return true
+}
+function updateFormationDisplay(){const el=$('formationDisplayValue');if(el)el.textContent=$('formation').value||'4-3-3'}
+$('formation').addEventListener('change',updateFormationDisplay);updateFormationDisplay();
+$('applyFormation').onclick=()=>{snap();formationPlayers($('team').value,$('formation').value,true)};
+$('addOneTeam').onclick=()=>{const team=$('team').value,extent=$('formationExtent').value;if(!confirm(`Se colocará un equipo completo de 11 jugadores con el sistema ${$('formation').value} para el Equipo ${team} en ${extent==='full'?'todo el campo':'su mitad del campo'}. Se reemplazarán los jugadores de ese equipo, conservando el resto de elementos. ¿Continuar?`))return;snap();formationPlayers(team,$('formation').value,true,extent)};
+$('addBothTeams').onclick=()=>{if(!confirm('Se colocarán dos equipos completos, cada uno en su propia mitad, con el sistema seleccionado. Se reemplazarán los jugadores que ya estén en la pizarra, pero se conservarán dibujos, balón y demás elementos. ¿Continuar?'))return;snap();objects=objects.filter(o=>o.type!=='player');formationPlayers('A',$('formation').value,false,'half');formationPlayers('B',$('formation').value,false,'half');render();setStatus(`Dos equipos agregados con el sistema ${$('formation').value}, cada uno en su mitad del campo.`)};
+$('deleteTeam').onclick=()=>{const team=$('team').value;const count=objects.filter(o=>o.type==='player'&&o.team===team).length;if(!count){setStatus(`El Equipo ${team} no tiene jugadores para eliminar.`);return}if(!confirm(`¿Eliminar los ${count} jugadores del Equipo ${team}? Se conservarán los jugadores del otro equipo y los demás dibujos.`))return;snap();objects=objects.filter(o=>!(o.type==='player'&&o.team===team));selected=null;render();setStatus(`Equipo ${team} eliminado. Los demás elementos se conservaron.`)};
+$('addTeam').onclick=()=>{tool='player';document.querySelector('[data-tool="player"]').click();setStatus('Toca el campo para añadir un jugador del equipo seleccionado.')};
+$('undo').onclick=()=>{if(history.length){objects=JSON.parse(history.pop());selected=null;render()}};
+$('delete').onclick=()=>deleteSelectedObject();
+function deleteSelectedObject(){if(selected===null||!objects[selected]){setStatus('Primero selecciona un elemento del campo o de la lista.');return}const label=objects[selected].type==='player'?'jugador':objects[selected].type==='arrow'?'flecha':objects[selected].type==='run'?'movimiento':objects[selected].type==='line'?'línea':objects[selected].type==='zigzag'?'zigzag':objects[selected].type==='ball'?'balón':objects[selected].type==='cone'?'cono':'elemento';snap();objects.splice(selected,1);selected=null;render();setStatus(`Se eliminó el ${label} seleccionado.`)}
+$('deleteTool').onclick=()=>deleteSelectedObject();
+$('clearDraw').onclick=()=>{snap();objects=objects.filter(o=>o.type==='player'||o.type==='ball');selected=null;render()};
+$('flip').onclick=()=>{snap();objects.forEach(o=>{o.x=c.width-o.x;if(o.x2!==undefined)o.x2=c.width-o.x2});render()};
+
+// Los controles de texto se aplican al instante y también sirven como valores predeterminados.
+function applyTextControls(){
+ textSizeDefault=$('textSizePreset').value||'medium';
+ textAnimationDefault=$('textAnimation').value||'none';
+ if(selected!==null&&objects[selected]&&objects[selected].type==='text'){
+   const o=objects[selected];snap();
+   o.label=$('labelInput').value||o.label||'Texto';
+   o.color=o.color||'#fff';
+   o.textSize=textSizeDefault;
+   o.textAnimation=textAnimationDefault;
+   o.size=({small:14,medium:20,large:32})[o.textSize]||20;
+   render();
+   setStatus(`Texto actualizado: tamaño ${$('textSizePreset').selectedOptions[0].text}, animación ${$('textAnimation').selectedOptions[0].text}.`);
+ } else {
+   setStatus(`Preferencias listas para el próximo texto: tamaño ${$('textSizePreset').selectedOptions[0].text}, animación ${$('textAnimation').selectedOptions[0].text}.`);
+ }
+ return true;
+}
+$('toggleTextSize').onclick=()=>{$('textSizeChoices').hidden=!$('textSizeChoices').hidden;$('textAnimationChoices').hidden=true;};
+$('toggleTextAnimation').onclick=()=>{$('textAnimationChoices').hidden=!$('textAnimationChoices').hidden;$('textSizeChoices').hidden=true;};
+document.querySelectorAll('[data-text-size]').forEach(b=>b.onclick=()=>{$('textSizePreset').value=b.dataset.textSize;applyTextControls();$('textSizeChoices').hidden=true;});
+$('textAnimation').addEventListener('change',()=>{applyTextControls();$('textAnimationChoices').hidden=true;});
+$('saveNotes').onclick=()=>{notes=$('notes').value;setStatus('Notas guardadas en esta sesión.')};
+$('view').onchange=render;$('colorA').oninput=()=>{objects.filter(o=>o.team==='A').forEach(o=>o.color=colors().A);render()};$('colorB').oninput=()=>{objects.filter(o=>o.team==='B').forEach(o=>o.color=colors().B);render()};
+$('format').onchange=()=>setStatus('Formato seleccionado: '+$('format').selectedOptions[0].text+'. Coloca los jugadores manualmente en la pizarra.');
+$('newBtn').onclick=()=>{updateFormationDisplay();if(confirm('¿Crear una pizarra nueva? Se borrarán los elementos actuales.')){snap();objects=[];keyframes=[{objects:[],duration:2}];currentFrame=0;selected=null;notes='';$('notes').value='';render();renderFrames()}};
+$('reset').onclick=()=>{if(confirm('¿Dejar la pizarra vacía?')){objects=[];keyframes=[{objects:[],duration:2}];currentFrame=0;selected=null;render();renderFrames();setStatus('Pizarra vacía. Elige un sistema o agrega elementos manualmente.')}};
+$('saveBtn').onclick=()=>{captureFrame();localStorage.setItem('tacticalpad-web-project',JSON.stringify({objects,notes,view:$('view').value,format:$('format').value,colors:colors(),keyframes,currentFrame}));setStatus('Proyecto y fotogramas guardados en este navegador.')};
+function download(name,data,type){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+$('exportJson').onclick=()=>download('jugada-tactica.json',JSON.stringify({version:2,objects,notes,view:$('view').value,format:$('format').value,colors:colors(),keyframes,currentFrame},null,2),'application/json');
+$('importBtn').onclick=()=>$('importFile').click();$('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.objects))throw Error('Formato no válido');loadProjectData(d);selected=null;setStatus('Proyecto importado correctamente.');}catch(err){alert('No se pudo importar: '+err.message)}e.target.value=''};
+$('exportPng').onclick=()=>{field();let a=document.createElement('a');a.download='pizarra-tactica.png';a.href=c.toDataURL('image/png');a.click()};
+$('objectList').onclick=e=>{let d=e.target.closest('[data-del]');if(d){snap();objects.splice(+d.dataset.del,1);selected=null;render();return}let it=e.target.closest('[data-i]');if(it){selected=+it.dataset.i;render()}};
+// Keyframe animation system: every frame stores a complete scene snapshot.
+let keyframes=[{objects:JSON.parse(JSON.stringify(objects)),duration:2}],currentFrame=0,playbackId=null,playStart=0,playElapsed=0,playingFrames=false;
+function cloneScene(){return JSON.parse(JSON.stringify(objects))}
+function captureFrame(){keyframes[currentFrame].objects=cloneScene();keyframes[currentFrame].duration=Math.max(.2,Math.min(60,parseFloat($('duration').value)||2))}
+function loadFrame(i){currentFrame=Math.max(0,Math.min(keyframes.length-1,i));objects=JSON.parse(JSON.stringify(keyframes[currentFrame].objects));selected=null;$('duration').value=keyframes[currentFrame].duration||2;render();renderFrames();$('frameTime').textContent=`Fotograma ${currentFrame+1} · ${totalBefore(currentFrame).toFixed(1)} s`;setStatus(`Editando fotograma ${currentFrame+1} de ${keyframes.length}. Los cambios se guardan al cambiar de fotograma o al pulsar Guardar.`)}
+function totalBefore(i){let t=0;for(let j=0;j<i;j++)t+=Number(keyframes[j].duration)||2;return t}
+function renderFrames(){const chips=$('frameChips'),markers=$('frameMarkers');if(!chips||!markers)return;chips.innerHTML='';markers.innerHTML='';keyframes.forEach((f,i)=>{let b=document.createElement('button');b.className='framechip'+(i===currentFrame?' current':'');b.innerHTML=`<span>▣</span><strong>${i+1}</strong><small>${(f.duration||2)} s</small>`;b.onclick=()=>{captureFrame();loadFrame(i)};chips.appendChild(b);let m=document.createElement('button');m.className='frame-marker'+(i===currentFrame?' current':'');m.textContent=`${i+1} · ${totalBefore(i).toFixed(1)}s`;m.onclick=()=>{captureFrame();loadFrame(i)};markers.appendChild(m)});$('prevFrame').disabled=currentFrame===0;$('nextFrame').disabled=currentFrame===keyframes.length-1}
+function addFrame(){captureFrame();let next=JSON.parse(JSON.stringify(keyframes[currentFrame]));next.duration=Math.max(.2,parseFloat($('duration').value)||2);keyframes.splice(currentFrame+1,0,next);loadFrame(currentFrame+1);setStatus(`Creado el fotograma ${currentFrame+1}. Ahora mueve los elementos para definir la siguiente posición.`)}
+function deleteFrame(){if(keyframes.length<=1){setStatus('Debe quedar al menos un fotograma en la secuencia.');return}if(!confirm(`¿Eliminar el fotograma ${currentFrame+1}? Esta acción quitará ese fotograma de la secuencia.`))return;keyframes.splice(currentFrame,1);currentFrame=Math.min(currentFrame,keyframes.length-1);loadFrame(currentFrame);setStatus(`Fotograma eliminado. Ahora estás en el fotograma ${currentFrame+1} de ${keyframes.length}.`)}
+function interpolateScene(a,b,t){const map=new Map(b.map(o=>[o.id||`${o.type}-${o.team||''}-${o.num||''}-${b.indexOf(o)}`,o]));return a.map((o,i)=>{let key=o.id||`${o.type}-${o.team||''}-${o.num||''}-${i}`,q=map.get(key)||b[i]||o;let r={...o};['x','y','x2','y2','size'].forEach(k=>{if(typeof o[k]==='number'&&typeof q[k]==='number')r[k]=o[k]+(q[k]-o[k])*t});return r})}
+function stopFramePlayback(){playingFrames=false;if(playbackId!==null)cancelAnimationFrame(playbackId);playbackId=null;$('playFrames').textContent='▶ Reproducir secuencia'}
+
+let activeRecorder=null,recordingChunks=[];
+function supportedVideoType(){if(!window.MediaRecorder)return '';return ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||''}
+async function exportAnimationVideo(mode){
+  captureFrame();
+  if(keyframes.length<2){alert('Añade al menos dos fotogramas antes de exportar la animación.');return}
+  if(!window.MediaRecorder){alert('Este navegador no permite grabar vídeo. Prueba con Google Chrome actualizado.');return}
+  const mime=supportedVideoType();if(!mime){alert('Este navegador no admite la exportación WebM. Prueba Chrome actualizado.');return}
+  const oldView=is3D;
+  if(mode==='3d'){
+    is3D=true;document.querySelector('.fieldwrap').classList.add('view3d');$('toggle3d').classList.add('active');$('toggle3d').setAttribute('aria-pressed','true');$('toggle3d').textContent='▰ 2D';
+    if(!threeReady)buildThree();if(!threeReady){is3D=oldView;alert('No se pudo iniciar la vista 3D. Comprueba la conexión a Internet y vuelve a intentarlo.');return}render3D();resizeThree();
+  }else{
+    is3D=false;document.querySelector('.fieldwrap').classList.remove('view3d');$('toggle3d').classList.remove('active');$('toggle3d').setAttribute('aria-pressed','false');$('toggle3d').textContent='▱ 3D';field();
+  }
+  const canvas=mode==='3d'?threeRenderer?.domElement:c;
+  if(!canvas||!canvas.captureStream){is3D=oldView;alert('No se pudo capturar el campo para el vídeo.');return}
+  stopFramePlayback();playElapsed=0;recordingChunks=[];const stream=canvas.captureStream(30);let rec;
+  try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:5000000})}catch(e){stream.getTracks().forEach(t=>t.stop());is3D=oldView;alert('No se pudo iniciar la grabación en este dispositivo.');return}
+  activeRecorder=rec;rec.ondataavailable=e=>{if(e.data&&e.data.size)recordingChunks.push(e.data)};rec.onerror=()=>{stream.getTracks().forEach(t=>t.stop());setStatus('No se pudo completar la grabación.')};
+  rec.onstop=()=>{stream.getTracks().forEach(t=>t.stop());const blob=new Blob(recordingChunks,{type:mime});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`animacion-tactica-${mode}.webm`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);const btn=$(mode==='3d'?'exportVideo3D':'exportVideo2D');btn.textContent=mode==='3d'?'⬇ Vídeo 3D':'⬇ Vídeo 2D';btn.disabled=false;is3D=oldView;document.querySelector('.fieldwrap').classList.toggle('view3d',is3D);$('toggle3d').classList.toggle('active',is3D);$('toggle3d').setAttribute('aria-pressed',String(is3D));$('toggle3d').textContent=is3D?'▰ 2D':'▱ 3D';if(is3D){if(!threeReady)buildThree();render3D()}else field();setStatus(`Vídeo ${mode.toUpperCase()} exportado en WebM. En Android busca el archivo en Descargas.`)};
+  const btn=$(mode==='3d'?'exportVideo3D':'exportVideo2D');btn.disabled=true;btn.textContent='Grabando…';loadFrame(0);if(mode==='3d')render3D();else field();rec.start(200);playFrameSequence();const totalMs=keyframes.reduce((sum,f)=>sum+(Number(f.duration)||2),0)*1000;setStatus(`Grabando la animación ${mode.toUpperCase()}. No cambies de aplicación hasta que termine.`);setTimeout(()=>{stopFramePlayback();if(rec.state!=='inactive')rec.stop()},totalMs+120);
+}
+$('exportVideo2D').onclick=()=>exportAnimationVideo('2d');$('exportVideo3D').onclick=()=>exportAnimationVideo('3d');
+function playFrameSequence(){captureFrame();if(keyframes.length<2){setStatus('Añade al menos dos fotogramas para reproducir una secuencia.');return}stopFramePlayback();playingFrames=true;$('playFrames').textContent='▶ Reproduciendo…';playStart=performance.now()-playElapsed;let total=keyframes.reduce((s,f)=>s+(Number(f.duration)||2),0);function tick(now){if(!playingFrames)return;let elapsed=((now-playStart)/1000)%total;let acc=0,idx=0;while(idx<keyframes.length-1&&elapsed>=acc+(Number(keyframes[idx].duration)||2)){acc+=Number(keyframes[idx].duration)||2;idx++}let dur=Number(keyframes[idx].duration)||2;let next=(idx+1)%keyframes.length;let t=Math.max(0,Math.min(1,(elapsed-acc)/dur));objects=interpolateScene(keyframes[idx].objects,keyframes[next].objects,t);selected=null;field();if(is3D&&threeReady)render3D();$('timeline').value=total?elapsed/total*100:0;$('timeLabel').textContent=elapsed.toFixed(1)+' / '+total.toFixed(1)+' s';$('frameTime').textContent=`Fotograma ${idx+1} → ${next+1} · ${elapsed.toFixed(1)} s`;playbackId=requestAnimationFrame(tick)}playbackId=requestAnimationFrame(tick)}
+$('addFrame').onclick=addFrame;$('deleteFrame').onclick=deleteFrame;$('prevFrame').onclick=()=>{captureFrame();loadFrame(currentFrame-1)};$('nextFrame').onclick=()=>{captureFrame();if(currentFrame===keyframes.length-1)addFrame();else loadFrame(currentFrame+1)};
+$('playFrames').onclick=playFrameSequence;$('pauseFrames').onclick=()=>{if(playingFrames){playElapsed=performance.now()-playStart;stopFramePlayback();setStatus('Animación pausada.')}};$('stopFrames').onclick=()=>{stopFramePlayback();playElapsed=0;loadFrame(0);$('timeline').value=0;$('timeLabel').textContent='0.0 s'};
+$('animate').onclick=playFrameSequence;$('stop').onclick=()=>{stopFramePlayback();render()};
+$('timeline').oninput=()=>{if(playingFrames)stopFramePlayback();let total=keyframes.reduce((s,f)=>s+(Number(f.duration)||2),0),target=(+$('timeline').value/100)*total,acc=0,idx=0;while(idx<keyframes.length-1&&target>=acc+(Number(keyframes[idx].duration)||2)){acc+=Number(keyframes[idx].duration)||2;idx++}loadFrame(idx);$('timeLabel').textContent=target.toFixed(1)+' s'};
+$('duration').onchange=()=>{keyframes[currentFrame].duration=Math.max(.2,Math.min(60,parseFloat($('duration').value)||2));renderFrames()};
+function example(){return [
+{type:'player',x:120,y:310,team:'A',color:'#258cf4',num:1,size:17},{type:'player',x:270,y:150,team:'A',color:'#258cf4',num:2,size:17},{type:'player',x:270,y:310,team:'A',color:'#258cf4',num:4,size:17},{type:'player',x:270,y:470,team:'A',color:'#258cf4',num:3,size:17},{type:'player',x:450,y:220,team:'A',color:'#258cf4',num:8,size:17},{type:'player',x:450,y:400,team:'A',color:'#258cf4',num:6,size:17},{type:'player',x:640,y:150,team:'A',color:'#258cf4',num:7,size:17},{type:'player',x:650,y:310,team:'A',color:'#258cf4',num:10,size:17},{type:'player',x:640,y:470,team:'A',color:'#258cf4',num:11,size:17},{type:'player',x:810,y:245,team:'A',color:'#258cf4',num:9,size:17},
+{type:'player',x:380,y:310,team:'B',color:'#f49b35',num:5,size:17},{type:'player',x:540,y:310,team:'B',color:'#f49b35',num:6,size:17},{type:'player',x:740,y:310,team:'B',color:'#f49b35',num:4,size:17},{type:'ball',x:470,y:230,size:12},{type:'run',x:450,y:220,x2:620,y2:150,color:'#ffef68'},{type:'arrow',x:470,y:230,x2:620,y2:260,color:'#fff'}]}
+
+// Installable PWA + persistent project library using IndexedDB.
+const DB_NAME='tacticalpad-local-library', DB_VERSION=1, STORE='projects';
+function openProjectDB(){return new Promise((resolve,reject)=>{if(!('indexedDB' in window)){reject(new Error('IndexedDB no disponible'));return}let req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{let db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error||new Error('No se pudo abrir la biblioteca'))})}
+async function dbAction(mode,action){const db=await openProjectDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,mode),store=tx.objectStore(STORE);let req=action(store);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error)}})}
+async function listProjects(){try{return (await dbAction('readonly',s=>s.getAll())).sort((a,b)=>b.updatedAt-a.updatedAt)}catch(e){return JSON.parse(localStorage.getItem('tacticalpad-project-library')||'[]')}}
+async function putProject(p){try{await dbAction('readwrite',s=>s.put(p))}catch(e){let a=JSON.parse(localStorage.getItem('tacticalpad-project-library')||'[]');let i=a.findIndex(x=>x.id===p.id);if(i>=0)a[i]=p;else a.push(p);localStorage.setItem('tacticalpad-project-library',JSON.stringify(a))}}
+async function removeProject(id){try{await dbAction('readwrite',s=>s.delete(id))}catch(e){let a=JSON.parse(localStorage.getItem('tacticalpad-project-library')||'[]').filter(x=>x.id!==id);localStorage.setItem('tacticalpad-project-library',JSON.stringify(a))}}
+function projectSnapshot(){captureFrame();return {version:2,objects:cloneScene(),notes:$('notes').value,keyframes:JSON.parse(JSON.stringify(keyframes)),currentFrame,view:$('view').value,format:$('format').value,colors:colors()}}
+function loadProjectData(d){if(!d||!Array.isArray(d.objects))throw new Error('El proyecto no tiene un formato válido');objects=JSON.parse(JSON.stringify(d.objects));notes=d.notes||'';$('notes').value=notes;if(Array.isArray(d.keyframes)&&d.keyframes.length){keyframes=JSON.parse(JSON.stringify(d.keyframes));currentFrame=Math.min(d.currentFrame||0,keyframes.length-1);objects=JSON.parse(JSON.stringify(keyframes[currentFrame].objects||objects))}else{keyframes=[{objects:cloneScene(),duration:2}];currentFrame=0}if(d.view)$('view').value=d.view;if(d.format)$('format').value=d.format;if(d.colors){$('colorA').value=d.colors.A||'#258cf4';$('colorB').value=d.colors.B||'#f49b35'}render();renderFrames()}
+async function renderProjectLibrary(){const list=await listProjects(),el=$('projectList');if(!list.length){el.innerHTML='<div class="small">Todavía no hay proyectos guardados. Pon un nombre y pulsa “Guardar proyecto”.</div>';return}el.innerHTML='';list.forEach(p=>{const card=document.createElement('div');card.className='project-card';const name=document.createElement('span');name.className='pname';name.textContent=p.name||'Proyecto sin nombre';const load=document.createElement('button');load.textContent='Abrir';load.onclick=()=>{if(!confirm(`¿Abrir “${p.name}”? Los cambios no guardados de la pizarra actual se reemplazarán.`))return;try{loadProjectData(p.data);$('projectName').value=p.name;setStatus(`Proyecto “${p.name}” abierto desde el almacenamiento local.`)}catch(e){alert(e.message)}};const exp=document.createElement('button');exp.textContent='↓';exp.title='Exportar proyecto';exp.onclick=()=>download((p.name||'proyecto').replace(/[^a-z0-9-_]+/gi,'_')+'.json',JSON.stringify(p.data,null,2),'application/json');const del=document.createElement('button');del.textContent='×';del.title='Eliminar proyecto';del.onclick=async()=>{if(confirm(`¿Eliminar definitivamente “${p.name}” de este dispositivo?`)){await removeProject(p.id);renderProjectLibrary()}};card.append(name,load,exp,del);el.appendChild(card)})}
+$('saveNamedProject').onclick=async()=>{let name=$('projectName').value.trim();if(!name)name='Proyecto '+new Date().toLocaleString();const list=await listProjects();const existing=list.find(p=>p.name.toLowerCase()===name.toLowerCase());const p={id:existing?existing.id:(Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)),name,data:projectSnapshot(),updatedAt:Date.now()};await putProject(p);$('projectName').value=name;await renderProjectLibrary();setStatus(`Proyecto “${name}” guardado en este dispositivo.`)};
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+
+objects=[];keyframes=[{objects:[],duration:2}];currentFrame=0;
+render();renderFrames();renderProjectLibrary();
+})();
+</script>
+</body></html>
