@@ -1,0 +1,42 @@
+TacticalPad Web 9.0 — Campo táctico 3D real
+
+Uso:
+1. Descomprime el ZIP y abre index.html en un navegador moderno.
+2. Para la vista 3D, se necesita conexión a internet para cargar Three.js desde jsDelivr. La vista 2D sigue disponible si no se carga la librería 3D.
+3. Pulsa el botón 3D para ver el campo volumétrico. Arrastra el fondo para rotar la cámara y usa la rueda del ratón o el gesto equivalente para acercar/alejar.
+4. En modo 3D, selecciona Jugador, Balón, Cono, Texto o una herramienta de trazado y pulsa/arrastra sobre el campo. Selecciona y arrastra elementos existentes para moverlos.
+
+La vista 3D incluye césped a franjas, líneas reglamentarias, áreas, círculo central, porterías con red, iluminación y gradas, jugadores modelados con cuerpo, cabeza, camiseta, pantalón, brazos y piernas, balones volumétricos, conos y trayectorias tácticas 3D.
+
+Se conservan las funciones de la versión anterior: formaciones tácticas, equipos A/B, extensión de media cancha o campo completo, tres tamaños de balón, herramientas de dibujo y eliminación, fotogramas, animaciones, biblioteca local y exportación de proyectos/vídeo.
+
+Nota: la vista 3D utiliza Three.js desde CDN; para el primer uso del modo 3D hace falta internet. La edición 2D no depende de esa librería.
+
+
+Novedades v12: controles de ángulo de cámara 3D (transmisión, arriba, lateral, arcos y ras de campo), rotación táctil, zoom con pellizco y modelos de jugadores con camiseta, pantalón, medias, botas, brazos, cabeza y números.
+
+Novedades 13.0: balón 3D con textura esférica de paneles blancos y negros; indicador del sistema táctico seleccionado (por ejemplo, 4-4-2) situado sobre el campo, fuera del área de juego.
+
+
+Novedades v16:
+- En computadora, la cancha se ajusta para verse completa sin ocupar toda la pantalla.
+- Menú de herramientas al lado izquierdo en escritorio; panel de propiedades debajo de la cancha.
+- El sistema táctico seleccionado se conserva al cambiar el formato y al guardar/abrir proyectos.
+- Agrega automáticamente equipos de 11, 7 o 5 jugadores desde los botones junto al formato.
+
+Novedades v17:
+- Barra de control inferior, situada debajo de la cancha, con accesos a Herramientas, Animar, Equipo y Guardar.
+- Cada acceso abre un panel desplegable; las herramientas y los ajustes de equipo aparecen agrupados para reducir el desorden visual.
+- Exportación de imágenes en JPEG de alta calidad (también se conserva PNG).
+- Exportación de vídeo 2D y 3D: genera MP4 si el navegador ofrece grabación MP4 nativa; de lo contrario genera WebM para evitar archivos MP4 falsos o dañados. Chrome/Android suele ofrecer WebM.
+- La vista 3D sigue requiriendo conexión para cargar Three.js desde CDN.
+
+
+VERSIÓN 20 — LÍNEA DE TIEMPO INTERACTIVA
+- Los fotogramas se muestran en una línea conectada con numeración y tiempo acumulado.
+- Selecciona cualquier círculo numerado para cargar ese fotograma y modificar la posición de los elementos.
+- Cada punto de la línea y cada miniatura tiene un botón × para eliminar ese fotograma.
+- El fotograma activo queda resaltado; al añadir uno nuevo se selecciona automáticamente.
+
+
+VERSIÓN 21: La línea de tiempo de fotogramas permanece visible debajo del área de la cancha y del menú. Se muestran las miniaturas y los marcadores conectados; puedes seleccionar cada fotograma para editarlo y eliminarlo desde su botón ×.
